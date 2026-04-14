@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: epicfain
+      POSTGRES_USER: epicfain
+      POSTGRES_PASSWORD: epicfain
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./internal/infrastructure/migration:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U epicfain"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  epic-fain:
+    build: .
+    ports:
+      - "8080:8080"
+      - "9090:9090"
+    environment:
+      HTTP_ADDR: ":8080"
+      TCP_ADDR: ":9090"
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_USER: epicfain
+      DB_PASSWORD: epicfain
+      DB_NAME: epicfain
+      DB_SSLMODE: disable
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
