@@ -1,112 +1,112 @@
 # Epic Fain
 
-A robust IoT platform for real-time telemetry collection and device management via CAN bus communication. Built with Go and designed for scalability, reliability, and compliance monitoring of industrial equipment.
+Plataforma IoT robusta para la recopilación y gestión de telemetría en tiempo real mediante comunicación por bus CAN. Construida en Go y diseñada para escalabilidad, confiabilidad y monitoreo de cumplimiento en equipos industriales.
 
-## Overview
+## Descripción General
 
-Epic Fain is a microservices-ready backend application that collects, processes, and manages telemetry data from Epic-series industrial devices. It handles CAN bus frame parsing, real-time monitoring, audit logging, and alert generation with a clean hexagonal architecture.
+Epic Fain es una aplicación backend lista para microservicios que recopila, procesa y gestiona datos de telemetría de dispositivos de la serie Epic. Maneja análisis de frames CAN, monitoreo en tiempo real, registro de auditoría y generación de alertas con una arquitectura hexagonal limpia.
 
-### Key Features
+### Características Principales
 
-- **CAN Bus Integration**: Real-time reception and parsing of CAN frames from remote devices
-- **Telemetry Management**: Store and retrieve device measurements including voltage, current, power, and lithium battery data
-- **Audit Logging**: Complete audit trail of all system operations for compliance
-- **Alert System**: Automatic alert generation for anomalies and threshold violations
-- **Device Control**: Command devices through the platform (Hito 3)
-- **REST API**: Comprehensive HTTP API for system interaction
-- **Multi-Protocol**: Dual communication via HTTP and TCP
-- **Database Persistence**: PostgreSQL for reliable data storage and retention policies
+- **Integración CAN Bus**: Recepción y análisis en tiempo real de frames CAN desde dispositivos remotos
+- **Gestión de Telemetría**: Almacenar y recuperar mediciones de dispositivos (voltaje, corriente, potencia, datos de batería de litio)
+- **Registro de Auditoría**: Pista de auditoría completa de todas las operaciones del sistema para cumplimiento normativo
+- **Sistema de Alertas**: Generación automática de alertas para anomalías y violaciones de umbrales
+- **Control de Dispositivos**: Comandar dispositivos a través de la plataforma (Hito 3)
+- **API REST**: API HTTP completa para interacción con el sistema
+- **Multi-protocolo**: Comunicación dual vía HTTP y TCP
+- **Persistencia en Base de Datos**: PostgreSQL para almacenamiento confiable de datos y políticas de retención
 
-## Technology Stack
+## Stack Tecnológico
 
-- **Language**: Go 1.22
-- **Database**: PostgreSQL 16
-- **Containerization**: Docker & Docker Compose
-- **Architecture**: Hexagonal (Ports & Adapters)
-- **Key Dependencies**:
-  - `github.com/lib/pq` - PostgreSQL driver
-  - `github.com/google/uuid` - UUID generation
+- **Lenguaje**: Go 1.22
+- **Base de Datos**: PostgreSQL 16
+- **Contenedorización**: Docker & Docker Compose
+- **Arquitectura**: Hexagonal (Puertos & Adaptadores)
+- **Dependencias Clave**:
+  - `github.com/lib/pq` - Driver PostgreSQL
+  - `github.com/google/uuid` - Generación de UUID
 
-## Architecture
+## Arquitectura
 
-The project follows a **Hexagonal Architecture** (Ports & Adapters) pattern:
+El proyecto sigue el patrón de **Arquitectura Hexagonal** (Puertos & Adaptadores):
 
 ```
 epic-fain/
 ├── cmd/
-│   └── server/          # Application entry point
+│   └── server/          # Punto de entrada de la aplicación
 ├── internal/
-│   ├── domain/          # Core business logic (independent of infrastructure)
-│   │   ├── model/       # Domain entities (CANFrame, Telemetry, Alert, Audit, etc.)
-│   │   ├── port/        # Interface definitions (Repository, Event, etc.)
-│   │   └── service/     # Domain services (CAN decoder, business rules)
-│   ├── application/     # Application services orchestrating domain logic
+│   ├── domain/          # Lógica de negocio central (independiente de infraestructura)
+│   │   ├── model/       # Entidades del dominio (CANFrame, Telemetry, Alert, Audit, etc.)
+│   │   ├── port/        # Definición de interfaces (Repository, Event, etc.)
+│   │   └── service/     # Servicios de dominio (decodificador CAN, reglas de negocio)
+│   ├── application/     # Servicios de aplicación orquestando lógica de dominio
 │   │   ├── device_control_service.go
 │   │   └── telemetry_service.go
-│   └── infrastructure/  # External adapters
+│   └── infrastructure/  # Adaptadores externos
 │       ├── adapter/
-│       │   ├── inbound/     # HTTP & TCP servers
-│       │   └── outbound/    # Database repositories, external services
-│       ├── config/          # Configuration management
-│       └── migration/       # Database schemas
+│       │   ├── inbound/     # Servidores HTTP y TCP
+│       │   └── outbound/    # Repositorios de base de datos, servicios externos
+│       ├── config/          # Gestión de configuración
+│       └── migration/       # Esquemas de base de datos
 ```
 
-### Domain Model
+### Modelo de Dominio
 
-Key entities managed by the platform:
+Entidades clave gestionadas por la plataforma:
 
-- **CANFrame**: Raw CAN bus messages with MessageID, DLC, and data
-- **Telemetry**: Device measurements (status, voltage, current, power, lithium data)
-- **Command**: Control directives sent to devices (VVVF control, measurement config)
-- **Alert**: Generated alerts for anomalies and threshold breaches
-- **AuditLog**: Complete record of platform operations
-- **Installation**: Device/installation configuration and metadata
+- **CANFrame**: Mensajes CAN brutos con MessageID, DLC y datos
+- **Telemetry**: Mediciones de dispositivos (estado, voltaje, corriente, potencia, datos de litio)
+- **Command**: Directivas de control enviadas a dispositivos (control VVVF, config de mediciones)
+- **Alert**: Alertas generadas para anomalías y violaciones de umbrales
+- **AuditLog**: Registro completo de operaciones de la plataforma
+- **Installation**: Configuración y metadatos de dispositivos/instalaciones
 
-### CAN Message Protocol
+### Protocolo de Mensajes CAN
 
-#### Inbound (Devices → Platform)
-- `0xFF00` - Status (7 bytes)
-- `0xFF01` - Measurements (8 bytes)
-- `0xFF02` - Currents (4 bytes)
-- `0xFF03` - Lithium data (8 bytes, lithium-enabled devices only)
-- `0xFF0E` - Device info (8 bytes)
+#### Entrantes (Dispositivos → Plataforma)
+- `0xFF00` - Estado (7 bytes)
+- `0xFF01` - Mediciones (8 bytes)
+- `0xFF02` - Corrientes (4 bytes)
+- `0xFF03` - Datos de litio (8 bytes, solo dispositivos habilitados para litio)
+- `0xFF0E` - Información del dispositivo (8 bytes)
 
-#### Outbound (Platform → Devices)
-- `0xEF00` - VVVF/Reset control (1 byte)
-- `0xEF01` - Measurement configuration (3 bytes)
-- `0xEF0E` - Device info request (1 byte)
+#### Salientes (Plataforma → Dispositivos)
+- `0xEF00` - Control VVVF/Reset (1 byte)
+- `0xEF01` - Configuración de mediciones (3 bytes)
+- `0xEF0E` - Solicitud de información del dispositivo (1 byte)
 
-## Getting Started
+## Inicio Rápido
 
-### Prerequisites
+### Requisitos Previos
 
 - Go 1.22+
 - Docker & Docker Compose
-- PostgreSQL 16+ (or use Docker)
+- PostgreSQL 16+ (o usar Docker)
 
-### Installation
+### Instalación
 
-1. **Clone the repository**
+1. **Clonar el repositorio**
    ```bash
    git clone https://github.com/liftelimasd/epic-fain.git
    cd epic-fain
    ```
 
-2. **Install dependencies**
+2. **Instalar dependencias**
    ```bash
    go mod download
    ```
 
-3. **Start with Docker Compose** (recommended)
+3. **Iniciar con Docker Compose** (recomendado)
    ```bash
    docker-compose up
    ```
-   This starts both PostgreSQL and the Epic Fain application.
+   Esto inicia tanto PostgreSQL como la aplicación Epic Fain.
 
-4. **Or run locally**
+4. **O ejecutar localmente**
    ```bash
-   # Ensure PostgreSQL is running
-   # Set environment variables
+   # Asegurate de que PostgreSQL está ejecutándose
+   # Establecer variables de entorno
    export HTTP_ADDR=":8080"
    export TCP_ADDR=":9090"
    export DB_HOST="localhost"
@@ -119,175 +119,175 @@ Key entities managed by the platform:
    go run ./cmd/server
    ```
 
-### Environment Variables
+### Variables de Entorno
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `HTTP_ADDR` | `:8080` | HTTP server listening address |
-| `TCP_ADDR` | `:9090` | TCP server listening address (CAN data receiver) |
-| `DB_HOST` | `localhost` | PostgreSQL hostname |
-| `DB_PORT` | `5432` | PostgreSQL port |
-| `DB_USER` | `epicfain` | PostgreSQL username |
-| `DB_PASSWORD` | `epicfain` | PostgreSQL password |
-| `DB_NAME` | `epicfain` | PostgreSQL database name |
-| `DB_SSLMODE` | `disable` | PostgreSQL SSL mode |
-| `API_KEYS` | (optional) | Comma-separated API keys for authentication |
+| Variable | Predeterminado | Descripción |
+|----------|---|-------------|
+| `HTTP_ADDR` | `:8080` | Dirección de escucha del servidor HTTP |
+| `TCP_ADDR` | `:9090` | Dirección de escucha del servidor TCP (receptor de datos CAN) |
+| `DB_HOST` | `localhost` | Nombre de host de PostgreSQL |
+| `DB_PORT` | `5432` | Puerto de PostgreSQL |
+| `DB_USER` | `epicfain` | Usuario de PostgreSQL |
+| `DB_PASSWORD` | `epicfain` | Contraseña de PostgreSQL |
+| `DB_NAME` | `epicfain` | Nombre de la base de datos PostgreSQL |
+| `DB_SSLMODE` | `disable` | Modo SSL de PostgreSQL |
+| `API_KEYS` | (opcional) | Claves API separadas por comas para autenticación |
 
-## API Endpoints
+## Endpoints de API
 
-All HTTP endpoints require API key authentication (header: `X-API-Key`).
+Todos los endpoints HTTP requieren autenticación por clave API (encabezado: `X-API-Key`).
 
-### Telemetry
-- `GET /api/v1/telemetry` - Retrieve telemetry data
-- `POST /api/v1/telemetry` - Create new telemetry record
+### Telemetría
+- `GET /api/v1/telemetry` - Recuperar datos de telemetría
+- `POST /api/v1/telemetry` - Crear nuevo registro de telemetría
 
-### Audit
-- `GET /api/v1/audit` - Retrieve audit logs
+### Auditoría
+- `GET /api/v1/audit` - Recuperar logs de auditoría
 
-### Devices
-- `GET /api/v1/devices` - List devices (Hito 2+)
-- `POST /api/v1/devices/{id}/command` - Send command to device (Hito 3)
+### Dispositivos
+- `GET /api/v1/devices` - Listar dispositivos (Hito 2+)
+- `POST /api/v1/devices/{id}/command` - Enviar comando a dispositivo (Hito 3)
 
-### Health & Info
-- `GET /health` - Health check endpoint
-- `GET /api/v1/info` - Platform information
+### Estado e Información
+- `GET /health` - Endpoint de verificación de salud
+- `GET /api/v1/info` - Información de la plataforma
 
-## TCP Protocol
+## Protocolo TCP
 
-The platform listens on the TCP port for CAN frame data. Devices should send raw CAN frames in the following binary format:
+La plataforma escucha en el puerto TCP para datos de frames CAN. Los dispositivos deben enviar frames CAN brutos en el siguiente formato binario:
 
 ```
-[MessageID: 2 bytes][DLC: 1 byte][Data: up to 8 bytes]
+[MessageID: 2 bytes][DLC: 1 byte][Data: hasta 8 bytes]
 ```
 
-## Database Schema
+## Esquema de Base de Datos
 
-Automatic migrations run on startup:
+Las migraciones automáticas se ejecutan al iniciar:
 
-1. **001_initial_schema.sql** - Tables for telemetry, audit, alerts, installations, commands
-2. **002_retention_policy.sql** - Data retention rules and policies
+1. **001_initial_schema.sql** - Tablas para telemetría, auditoría, alertas, instalaciones, comandos
+2. **002_retention_policy.sql** - Reglas y políticas de retención de datos
 
 ## Testing
 
-Run the test suite:
+Ejecutar la suite de pruebas:
 
 ```bash
 go test ./...
 ```
 
-Run with coverage:
+Ejecutar con cobertura:
 
 ```bash
 go test -cover ./...
 ```
 
-Key test files:
-- `internal/domain/service/decoder_test.go` - CAN decoder tests
+Archivos de prueba clave:
+- `internal/domain/service/decoder_test.go` - Pruebas del decodificador CAN
 
-## Development
+## Desarrollo
 
-### Code Style
+### Estilo de Código
 
-Follow Go conventions and idioms:
-- Use table-driven tests
-- Implement proper error handling
-- Keep packages focused and modular
-- Respect the architecture boundaries
+Sigue convenciones e idiomas de Go:
+- Usar pruebas table-driven
+- Implementar manejo adecuado de errores
+- Mantener paquetes enfocados y modulares
+- Respetar los límites de arquitectura
 
-### Recommended Skills
+### Skills Recomendadas
 
-The project includes automated Go development skills:
-- **Go Development Patterns** - Idiomatic patterns and best practices
-- **Go Testing Patterns** - TDD methodology with table-driven tests
+El proyecto incluye skills Go automatizadas:
+- **Go Development Patterns** - Patrones idiomáticos y mejores prácticas
+- **Go Testing Patterns** - Metodología TDD con pruebas table-driven
 
-Access them in `.claude/skills/` or `.agents/skills/`.
+Accesibles en `.claude/skills/` o `.agents/skills/`.
 
-### Project Phases
+### Fases del Proyecto
 
-- **Hito 1**: Core telemetry collection and API ✅
-- **Hito 2**: Device management, installation tracking
-- **Hito 3**: Alert system, device control, MQTT integration
+- **Hito 1**: Recopilación de telemetría central y API ✅
+- **Hito 2**: Gestión de dispositivos, seguimiento de instalaciones
+- **Hito 3**: Sistema de alertas, control de dispositivos, integración MQTT
 
-## Deployment
+## Despliegue
 
 ### Docker
 
-1. **Build the image**
+1. **Construir la imagen**
    ```bash
    docker build -t liftel/epic-fain:latest .
    ```
 
-2. **Run with compose**
+2. **Ejecutar con compose**
    ```bash
    docker-compose up -d
    ```
 
-3. **View logs**
+3. **Ver logs**
    ```bash
    docker-compose logs -f epic-fain
    ```
 
-4. **Stop services**
+4. **Detener servicios**
    ```bash
    docker-compose down
    ```
 
-### Health Check
+### Verificación de Salud
 
-The application exposes a health endpoint:
+La aplicación expone un endpoint de salud:
 ```bash
 curl http://localhost:8080/health
 ```
 
-## Database Migrations
+## Migraciones de Base de Datos
 
-Migrations are applied automatically on startup from SQL files in `internal/infrastructure/migration/`.
+Las migraciones se aplican automáticamente al iniciar desde archivos SQL en `internal/infrastructure/migration/`.
 
-To manually run migrations:
+Para ejecutar migraciones manualmente:
 ```bash
-# Ensure PostgreSQL CLI tools are installed
+# Asegurate de que las herramientas CLI de PostgreSQL estén instaladas
 psql -h $DB_HOST -U $DB_USER -d $DB_NAME < internal/infrastructure/migration/001_initial_schema.sql
 psql -h $DB_HOST -U $DB_USER -d $DB_NAME < internal/infrastructure/migration/002_retention_policy.sql
 ```
 
-## Troubleshooting
+## Solución de Problemas
 
-### Database connection errors
-- Verify PostgreSQL is running: `docker-compose ps`
-- Check database credentials match environment variables
-- Ensure database is healthy: `docker-compose logs db`
+### Errores de conexión a base de datos
+- Verifica que PostgreSQL esté ejecutándose: `docker-compose ps`
+- Comprueba que las credenciales de la base de datos coincidan con las variables de entorno
+- Asegurate de que la base de datos esté sana: `docker-compose logs db`
 
-### TCP server not receiving data
-- Verify TCP_ADDR is correctly configured
-- Check firewall rules allow connections to the TCP port
-- Ensure remote devices are sending to the correct host/port
+### El servidor TCP no recibe datos
+- Verifica que TCP_ADDR esté configurado correctamente
+- Comprueba las reglas del firewall permitan conexiones al puerto TCP
+- Asegurate de que los dispositivos remotos envíen al host/puerto correcto
 
-### API authentication failures
-- Verify `API_KEYS` environment variable is set
-- Ensure `X-API-Key` header is included in requests
-- Check API key format (comma-separated if multiple)
+### Fallos de autenticación de API
+- Verifica que la variable de entorno `API_KEYS` esté establecida
+- Asegurate de que el encabezado `X-API-Key` esté incluido en las solicitudes
+- Comprueba el formato de la clave API (separadas por comas si hay múltiples)
 
-## Contributing
+## Contribuir
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/your-feature`
-3. Commit your changes with clear messages
-4. Push to your fork
-5. Submit a pull request
+1. Fork el repositorio
+2. Crea una rama de características: `git checkout -b feature/tu-feature`
+3. Commit tus cambios con mensajes claros
+4. Haz push a tu fork
+5. Envía una pull request
 
-## License
+## Licencia
 
-[Specify your license here - e.g., MIT, Apache 2.0, etc.]
+[Especifica tu licencia aquí - ej: MIT, Apache 2.0, etc.]
 
-## Support
+## Soporte
 
-For issues, questions, or feedback:
-- Open an issue on GitHub: https://github.com/liftelimasd/epic-fain/issues
-- Contact the Liftel team
+Para issues, preguntas o feedback:
+- Abre un issue en GitHub: https://github.com/liftelimasd/epic-fain/issues
+- Contacta al equipo de Liftel
 
-## Project Information
+## Información del Proyecto
 
-- **Repository**: https://github.com/liftelimasd/epic-fain
-- **Organization**: [Liftel](https://github.com/liftelimasd)
-- **Language**: Go 1.22
-- **Last Updated**: 2026
+- **Repositorio**: https://github.com/liftelimasd/epic-fain
+- **Organización**: [Liftel](https://github.com/liftelimasd)
+- **Lenguaje**: Go 1.22
+- **Última Actualización**: 2026
